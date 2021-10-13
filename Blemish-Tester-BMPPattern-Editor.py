@@ -7,8 +7,8 @@ import os
 import tkinter.messagebox
 
 def openBMPSetting(event):
-    initialdir = '/Volumes/Samsung_T5/Code-Repository/Lab-PC/PycharmProjects/Test-Pattern-Creator'
-    fileName = fd.askopenfilename(initialdir=initialdir)
+    initialDir = ''
+    fileName = fd.askopenfilename(initialdir=initialDir)
     filePathEntry.delete(0,'end')
     filePathEntry.insert(0,fileName)
     pass
@@ -43,17 +43,21 @@ def createBMP(event):
             else:
                 ### Create image with various background colors according to the setup csv
                 if imgBackground == 'Red' or imgBackground == 'red':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), 'red')
+                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (255,0,0))
                 elif imgBackground == 'Green' or imgBackground == 'green':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), 'green')
+                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (0,255,0))
                 elif imgBackground == 'Blue' or imgBackground == 'blue':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), 'blue')
+                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (0,0,255))
                 elif imgBackground == 'White' or imgBackground == 'white':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), 'white')
+                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (255,255,255))
                 else:
                     return None
                 pixels = img.load()
-                # Set pixel value according to the setting in the setup csv
+
+                ### Check pixel value of the image
+                #for i in range(0,11):
+                    #print(pixels[i,i])
+                ### Set pixel value according to the setting in the setup csv
                 for i in range(0,dotNum):
                     for m in range(1,dotWidth[i]):
                         for n in range (1,dotHeight[i]):
@@ -72,9 +76,9 @@ def createBMP(event):
 
                 saveFullPath = os.path.join(os.path.abspath(os.getcwd()), saveName)
                 img.save(saveFullPath)
-                tk.messagebox.showinfo(message = 'BMP image has been successfully created!')
+                #tk.messagebox.showinfo(message = 'BMP image has been successfully created!')
 
-                img.show()
+                img.show() # option title is not working in this function
 window = tk.Tk()
 window.geometry('600x70+400+400')
 
