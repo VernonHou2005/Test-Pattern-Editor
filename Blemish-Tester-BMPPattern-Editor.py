@@ -59,9 +59,12 @@ def createBMP(event):
                     #print(pixels[i,i])
                 ### Set pixel value according to the setting in the setup csv
                 for i in range(0,dotNum):
-                    for m in range(1,dotWidth[i]):
-                        for n in range (1,dotHeight[i]):
-                            pixels[dotLocationsX[i] + m - 1,dotLocationsY[i] + n - 1] =(dotR[i],dotG[i],dotB[i])
+                    for m in range(0,dotWidth[i]):
+                        for n in range (0,dotHeight[i]):
+                            pixels[dotLocationsX[i] + m,dotLocationsY[i] + n] =(dotR[i],dotG[i],dotB[i])
+                            #print('n= ', n)
+                        #print ('m= ',m)
+                    #print ('i= ',i)
 
                 saveName = ''
                 ### To Flip the image to make a left eye pattern
