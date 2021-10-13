@@ -65,11 +65,20 @@ def createBMP(event):
 
                 saveName = ''
                 ### To Flip the image to make a left eye pattern
-                if chkValue.get():
+                if chkLeftValue.get():
                     #print(chkValue.get())
                     img= img.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
                     saveName = fileFullPath.rstrip(
                         '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Left' + '.bmp'
+                elif chkHMDValue.get():
+                    imgRight= img
+                    imgLeft= imgRight.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
+                    imgHMD= Image.new('RGB',(2* int(imgWidthSettingEntry.get()),int(imgHeightSettingEntry.get())),(0,0,0))
+                    imgHMD.paste(imgLeft,(0,0))
+                    imgHMD.paste(imgRight,(imgLeft.size[0],0))
+                    img= imgHMD
+                    saveName= fileFullPath.rstrip(
+                        '.csv') + '_' + str(imgHMD.size[0]) + 'X' + str(imgHMD.size[1]) + '_HMD' + '.bmp'
                 else:
                     saveName = fileFullPath.rstrip(
                         '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Right' + '.bmp'
@@ -79,6 +88,15 @@ def createBMP(event):
                 #tk.messagebox.showinfo(message = 'BMP image has been successfully created!')
 
                 img.show() # option title is not working in this function
+
+def HMDActivate():
+    if chkHMDValue.get():
+        chkLeftValue.set(False)
+
+def leftEyeActivate():
+    if chkLeftValue.get():
+        chkHMDValue.set(False)
+
 window = tk.Tk()
 window.geometry('600x70+400+400')
 
@@ -101,10 +119,17 @@ imgHeightSettingEntry = tk.Entry(width = 5)
 imgHeightSettingEntry.insert(0, '1920')
 imgHeightSettingEntry.grid(sticky = 'W',row= 2, column= 5)
 
-chkValue = tk.BooleanVar()
-chkValue.set(False)
-leftEyeCheck= tk.Checkbutton(text= 'Left Eye',var= chkValue)
-leftEyeCheck.grid(row= 2, column= 10, sticky= 'W')
+chkLeftValue = tk.BooleanVar()
+chkLeftValue.set(False)
+chkHMDValue = tk.BooleanVar()
+chkHMDValue.set(False)
+
+leftEyeCheck= tk.Checkbutton(text= 'Left Eye',var= chkLeftValue, command = leftEyeActivate)
+leftEyeCheck.grid(row= 2, column= 9, sticky= 'W')
+
+HMDCheck = tk.Checkbutton(text= 'HMD',var=chkHMDValue, command= HMDActivate)
+HMDCheck.grid(row= 2, column= 10, sticky= 'W')
+
 createBMPButton = tk.Button(text = 'Create BMP')
 createBMPButton.bind('<Button-1>',createBMP)
 createBMPButton.grid(sticky = 'W',row = 2, column = 11)
