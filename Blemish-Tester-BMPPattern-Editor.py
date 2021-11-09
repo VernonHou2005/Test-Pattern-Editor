@@ -51,7 +51,11 @@ def createBMP(event):
             dotLocationsY = setupDataFrame['Location-Y']
             dotWidth = setupDataFrame['Dot-Width']
             dotHeight = setupDataFrame['Dot-Height']
+
             dotNum = len(dotLocationsX)
+            ### to make sure empty dot list would not cause any problems
+            if dotLocationsX[0] == 'NaN' or 'nan':
+                dotNum= 0
 
             imgBackground= setupDataFrame['Background'][0]
 
@@ -72,6 +76,8 @@ def createBMP(event):
                     img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (0,0,255))
                 elif imgBackground == 'White' or imgBackground == 'white':
                     img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (255,255,255))
+                elif imgBackground == 'Black' or imgBackground == 'black':
+                    img = Image.new('RGB',(int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())),(0,0,0))
                 else:
                     return None
                 pixels = img.load()
