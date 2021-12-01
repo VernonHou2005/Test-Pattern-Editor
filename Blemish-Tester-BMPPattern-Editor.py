@@ -53,8 +53,9 @@ def createBMP(event):
             dotHeight = setupDataFrame['Dot-Height']
 
             dotNum = len(dotLocationsX)
+
             ### to make sure empty dot list would not cause any problems
-            if dotLocationsX[0] == 'NaN' or 'nan':
+            if np.isnan(dotLocationsX[0]):
                 dotNum= 0
 
             imgBackground= setupDataFrame['Background'][0]
@@ -63,77 +64,74 @@ def createBMP(event):
             dotG = setupDataFrame['Green']
             dotB = setupDataFrame['Blue']
 
-            if dotNum != len(dotLocationsY):
-                tk.messagebox.showwarning('Incorrect Dot setting, please correct it before moving forward!')
 
+            ### Create image with various background colors according to the setup csv
+            if imgBackground == 'Red' or imgBackground == 'red':
+                img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (255,0,0))
+            elif imgBackground == 'Green' or imgBackground == 'green':
+                img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (0,255,0))
+            elif imgBackground == 'Blue' or imgBackground == 'blue':
+                img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (0,0,255))
+            elif imgBackground == 'White' or imgBackground == 'white':
+                img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (255,255,255))
+            elif imgBackground == 'Black' or imgBackground == 'black':
+                img = Image.new('RGB',(int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())),(0,0,0))
             else:
-                ### Create image with various background colors according to the setup csv
-                if imgBackground == 'Red' or imgBackground == 'red':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (255,0,0))
-                elif imgBackground == 'Green' or imgBackground == 'green':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (0,255,0))
-                elif imgBackground == 'Blue' or imgBackground == 'blue':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (0,0,255))
-                elif imgBackground == 'White' or imgBackground == 'white':
-                    img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())), (255,255,255))
-                elif imgBackground == 'Black' or imgBackground == 'black':
-                    img = Image.new('RGB',(int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())),(0,0,0))
-                else:
-                    return None
-                pixels = img.load()
+                return None
+            pixels = img.load()
 
-                ### Rote 21 degree for HMD pattern if the HMDRotateCheck is selected
-                if chkHMDRotateValue.get():
-                    for i in range(0,dotNum):
-                        rho= Cartesian2Polar(dotLocationsX[i],dotLocationsY[i])[0]
-                        theta= Cartesian2Polar(dotLocationsX[i],dotLocationsY[i])[1] + 21/180*np.pi
-                        dotLocationsX[i]= Polar2Cartesian(rho,theta)[0]
-                        dotLocationsY[i]= Polar2Cartesian(rho,theta)[1]
-
-                ### Check pixel value of the image
-                #for i in range(0,11):
-                    #print(pixels[i,i])
-                ### Set pixel value according to the setting in the setup csv
+            ### Rote 21 degree for HMD pattern if the HMDRotateCheck is selected
+            if chkHMDRotateValue.get():
                 for i in range(0,dotNum):
-                    #print('i= ', i)
-                    for m in range(0,int(dotWidth[i])):
-                        for n in range (0,int(dotHeight[i])):
-                            pixels[int(dotLocationsX[i]) + m,int(dotLocationsY[i]) + n] =(int(dotR[i]),int(dotG[i]),int(dotB[i]))
-                            #print('n= ', n)
-                        #print ('m= ',m)
+                    rho= Cartesian2Polar(dotLocationsX[i],dotLocationsY[i])[0]
+                    theta= Cartesian2Polar(dotLocationsX[i],dotLocationsY[i])[1] + 21/180*np.pi
+                    dotLocationsX[i]= Polar2Cartesian(rho,theta)[0]
+                    dotLocationsY[i]= Polar2Cartesian(rho,theta)[1]
+
+            ### Check pixel value of the image
+            #for i in range(0,11):
+                #print(pixels[i,i])
+            ### Set pixel value according to the setting in the setup csv
+            for i in range(0,dotNum):
+                #print('i= ', i)
+                for m in range(0,int(dotWidth[i])):
+                    for n in range (0,int(dotHeight[i])):
+                        pixels[int(dotLocationsX[i]) + m,int(dotLocationsY[i]) + n] =(int(dotR[i]),int(dotG[i]),int(dotB[i]))
+                        #print('n= ', n)
+                    #print ('m= ',m)
 
 
-                saveName = ''
-                ### Draw AB boundarys if ABCircleCheck is selected, display cender is (773,960), radius of A and B are 292 and 890 respectively
-                if chkABCircleValue.get():
-                    for i in range(0,int(imgWidthSettingEntry.get())):
-                        for j in range(0,int(imgHeightSettingEntry.get())):
-                            if 290**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < 294**2 or 888**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < 892**2:
-                                pixels[i,j]= (0,0,0)
-                ### To Flip the image to make a left eye pattern
-                if chkLeftValue.get():
-                    #print(chkValue.get())
-                    img= img.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
-                    saveName = fileFullPath.rstrip(
-                        '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Left' + '.bmp'
-                elif chkHMDValue.get():
-                    imgRight= img
-                    imgLeft= imgRight.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
-                    imgHMD= Image.new('RGB',(2* int(imgWidthSettingEntry.get()),int(imgHeightSettingEntry.get())),(0,0,0))
-                    imgHMD.paste(imgLeft,(0,0))
-                    imgHMD.paste(imgRight,(imgLeft.size[0],0))
-                    img= imgHMD
-                    saveName= fileFullPath.rstrip(
-                        '.csv') + '_' + str(imgHMD.size[0]) + 'X' + str(imgHMD.size[1]) + '_HMD' + '.bmp'
-                else:
-                    saveName = fileFullPath.rstrip(
-                        '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Right' + '.bmp'
+            saveName = ''
+            ### Draw AB boundarys if ABCircleCheck is selected, display cender is (773,960), radius of A and B are 292 and 890 respectively
+            if chkABCircleValue.get():
+                for i in range(0,int(imgWidthSettingEntry.get())):
+                    for j in range(0,int(imgHeightSettingEntry.get())):
+                        if 290**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < 294**2 or 888**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < 892**2:
+                            pixels[i,j]= (0,0,0)
+            ### To Flip the image to make a left eye pattern
+            if chkLeftValue.get():
+                #print(chkValue.get())
+                img= img.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
+                saveName = fileFullPath.rstrip(
+                    '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Left' + '.bmp'
+            elif chkHMDValue.get():
+                imgRight= img
+                imgLeft= imgRight.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
+                imgHMD= Image.new('RGB',(2* int(imgWidthSettingEntry.get()),int(imgHeightSettingEntry.get())),(0,0,0))
+                imgHMD.paste(imgLeft,(0,0))
+                imgHMD.paste(imgRight,(imgLeft.size[0],0))
+                img= imgHMD
+                saveName= fileFullPath.rstrip(
+                    '.csv') + '_' + str(imgHMD.size[0]) + 'X' + str(imgHMD.size[1]) + '_HMD' + '.bmp'
+            else:
+                saveName = fileFullPath.rstrip(
+                    '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Right' + '.bmp'
 
-                saveFullPath = os.path.join(os.path.abspath(os.getcwd()), saveName)
-                img.save(saveFullPath)
-                #tk.messagebox.showinfo(message = 'BMP image has been successfully created!')
+            saveFullPath = os.path.join(os.path.abspath(os.getcwd()), saveName)
+            img.save(saveFullPath)
+            #tk.messagebox.showinfo(message = 'BMP image has been successfully created!')
 
-                img.show() # option title is not working in this function
+            img.show() # option title is not working in this function
 
 def HMDActivate():
     if chkHMDValue.get():
