@@ -49,7 +49,10 @@ def createBMP(event):
         dotNum = len(dotLocationsX)
 
         ### to make sure empty dot list would not cause any problems
-        if np.isnan(dotLocationsX[0]):
+        ### dataframe.empty has to be used to check a empty dataframe
+        if setupDataFrame.empty:
+            dotNum = 0
+        elif np.isnan(dotLocationsX[0]):
             dotNum= 0
 
         ### Get RGB value for each dot
@@ -96,10 +99,60 @@ def createBMP(event):
         saveName = ''
         ### Draw AB boundarys if ABCircleCheck is selected, display cender is (773,960), radius of A and B are 292 and 890 respectively
         if chkABCircleValue.get():
+            circleWidth = 1
+            ### Determine the color of the circle according to the background color
+            if int(BackgroundREntry.get()) == 0 and int(BackgroundGEntry.get()) == 0 and int(BackgroundBEntry.get()) == 0:
+                circle_R= 255
+                circle_G= 255
+                circle_B= 255
+            else:
+                circle_R= 0
+                circle_G= 0
+                circle_B= 0
             for i in range(0,int(imgWidthSettingEntry.get())):
                 for j in range(0,int(imgHeightSettingEntry.get())):
-                    if 290**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < 294**2 or 888**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < 892**2:
-                        pixels[i,j]= (0,0,0)
+                    if (292-circleWidth)**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < (292+circleWidth)**2 or \
+                            (890-circleWidth)**2 <= (abs(i- displayCenter_X))**2 + (abs(j- displayCenter_Y))**2 < (890+circleWidth)**2:
+                        pixels[i,j]= (circle_R,circle_G,circle_B)
+
+        #### Draw customized circles according to the location and radius information input in the GUI
+        if Circle1CenterEntry_x.get().isnumeric() and Circle1CenterEntry_y.get().isnumeric() and Circle1RadiusEntry.get().isnumeric():
+            circleCenter_x= int(Circle1CenterEntry_x.get())
+            circleCenter_y= int(Circle1CenterEntry_y.get())
+            circleRadius= int(Circle1RadiusEntry.get())
+            circleWidth= 1
+            ### Determine the color of the circle according to the background color
+            if int(BackgroundREntry.get()) == 0 and int(BackgroundGEntry.get()) == 0 and int(BackgroundBEntry.get()) == 0:
+                circle_R = 255
+                circle_G = 255
+                circle_B = 255
+            else:
+                circle_R = 0
+                circle_G = 0
+                circle_B = 0
+            for i in range(0,int(imgWidthSettingEntry.get())):
+                for j in range(0,int(imgHeightSettingEntry.get())):
+                    if (circleRadius-circleWidth)**2 <= (abs(i- circleCenter_x))**2 + (abs(j- circleCenter_y))**2 < (circleRadius+circleWidth)**2:
+                        pixels[i,j]= (circle_R,circle_G,circle_B)
+        if Circle2CenterEntry_x.get().isnumeric() and Circle2CenterEntry_y.get().isnumeric() and Circle2RadiusEntry.get().isnumeric():
+            circleCenter_x= int(Circle2CenterEntry_x.get())
+            circleCenter_y= int(Circle2CenterEntry_y.get())
+            circleRadius= int(Circle2RadiusEntry.get())
+            circleWidth= 1
+            ### Determine the color of the circle according to the background color
+            if int(BackgroundREntry.get()) == 0 and int(BackgroundGEntry.get()) == 0 and int(BackgroundBEntry.get()) == 0:
+                circle_R = 255
+                circle_G = 255
+                circle_B = 255
+            else:
+                circle_R = 0
+                circle_G = 0
+                circle_B = 0
+            for i in range(0,int(imgWidthSettingEntry.get())):
+                for j in range(0,int(imgHeightSettingEntry.get())):
+                    if (circleRadius-circleWidth)**2 <= (abs(i- circleCenter_x))**2 + (abs(j- circleCenter_y))**2 < (circleRadius+circleWidth)**2:
+                        pixels[i,j]= (circle_R,circle_G,circle_B)
+        ### To Flip the image to make a left eye pat
         ### To Flip the image to make a left eye pattern
         if chkLeftValue.get():
             #print(chkValue.get())
@@ -139,8 +192,8 @@ displayCenter_X= 773
 displayCenter_Y= 960
 
 window = tk.Tk()
-window.geometry('650x100+400+400')
-####### Row 1 ########
+window.geometry('650x150+400+400')
+####### Row 0 ########
 ConfigFileLabel= tk.Label(text = 'Setting File')
 ConfigFileLabel.grid(sticky= 'W',row= 0, column= 1, columnspan= 2 )
 filePathEntry = tk.Entry(width= 48)
@@ -148,7 +201,7 @@ filePathEntry.grid(row= 0, column = 3, columnspan= 18)
 settingButton = tk.Button(text = 'Setting File')
 settingButton.bind('<Button-1>',openBMPSetting)
 settingButton.grid(row = 0, column = 21, columnspan= 3)
-####### Row 2 #########
+####### Row 1 #########
 imgWidthSettingLabel = tk.Label(text = 'Width')
 imgWidthSettingLabel.grid( sticky= 'E',row= 1, column= 1 )
 imgWidthSettingEntry = tk.Entry(width= 5)
@@ -184,7 +237,7 @@ chkLeftValue = tk.BooleanVar()
 chkLeftValue.set(False)
 chkHMDValue = tk.BooleanVar()
 chkHMDValue.set(False)
-######## Row 3 #########
+######## Row 2 #########
 leftEyeCheck= tk.Checkbutton(text= 'Left Eye',var= chkLeftValue, command = leftEyeActivate)
 leftEyeCheck.grid(row= 2, column= 2, columnspan= 3)
 
@@ -206,5 +259,38 @@ HMDRotateCheck.grid(row= 2, column= 11, sticky= 'W',columnspan= 3)
 createBMPButton = tk.Button(text = 'Create BMP')
 createBMPButton.bind('<Button-1>',createBMP)
 createBMPButton.grid(sticky = 'W',row = 2, column = 21,columnspan= 3)
+
+
+######## Row 3 #########
+Circle1CenterLabel = tk.Label(text = 'Circle1 at')
+Circle1CenterLabel.grid(row= 3, column= 1,columnspan= 2)
+Circle1CenterEntry_x = tk.Entry(width = 4)
+Circle1CenterEntry_x.insert(0, 'x')
+Circle1CenterEntry_x.grid(sticky= 'W',row= 3, column= 3,columnspan= 2)
+Circle1CenterEntry_y = tk.Entry(width = 4)
+Circle1CenterEntry_y.insert(0, 'y')
+Circle1CenterEntry_y.grid(sticky= 'W',row= 4, column= 3,columnspan= 2)
+
+Circle1RadiusLabel = tk.Label(text= 'Radius')
+Circle1RadiusLabel.grid(row= 3, column= 4,columnspan= 3)
+Circle1RadiusEntry = tk.Entry(width = 4)
+Circle1RadiusEntry.insert(0, '0')
+Circle1RadiusEntry.grid(sticky= 'W', row= 3, column= 6,columnspan= 2)
+
+Circle2CenterLabel = tk.Label(text = 'Circle2 at')
+Circle2CenterLabel.grid(sticky= 'E',row= 3, column= 10,columnspan= 3)
+Circle2CenterEntry_x = tk.Entry(width = 4)
+Circle2CenterEntry_x.insert(0, 'x')
+Circle2CenterEntry_x.grid(sticky= 'W', row= 3, column= 14,columnspan= 2)
+Circle2CenterEntry_y = tk.Entry(width = 4)
+Circle2CenterEntry_y.insert(0, 'y')
+Circle2CenterEntry_y.grid(sticky= 'W', row= 4, column= 14,columnspan= 2)
+
+Circle2RadiusLabel = tk.Label(text= 'Radius')
+Circle2RadiusLabel.grid(row= 3, column= 16,columnspan= 2)
+Circle2RadiusEntry = tk.Entry(width = 4)
+Circle2RadiusEntry.insert(0, '0')
+Circle2RadiusEntry.grid( row= 3, column=18,columnspan= 2)
+
 
 window.mainloop()
