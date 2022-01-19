@@ -2,6 +2,7 @@ import PIL
 from PIL import Image
 import tkinter as tk
 import tkinter.filedialog as fd
+from tkinter import ttk
 import pandas as pd
 import os
 import tkinter.messagebox
@@ -13,12 +14,17 @@ def openBMPSetting(event):
     filePathEntry.delete(0,'end')
     filePathEntry.insert(0,fileName)
 
-def Cartesian2Polar(x,y):
-    X= x- displayCenter_X
-    Y= y- displayCenter_Y
+def Cartesian2Polar(x,y,center_x,center_y):
+    X= x- center_x
+    Y= center_y - y
     rho= np.sqrt(X**2+ Y**2)
     theta= 0
-    if X >= 0 and Y >= 0:
+    if X == 0:
+        if Y >=0:
+            theta = np.pi/2
+        elif Y < 0:
+            theta = np.pi *3/2
+    elif X > 0 and Y >= 0:
         theta=np.arctan(Y/X)
     elif X < 0 and Y >=0:
         theta= np.arctan(Y/X)+ np.pi
@@ -29,10 +35,10 @@ def Cartesian2Polar(x,y):
     else:
         pass
     return rho,theta
-def Polar2Cartesian(rho, theta):
+def Polar2Cartesian(rho, theta,center_x,center_y):
     X= rho* np.cos(theta)
     Y= rho* np.sin(theta)
-    return X+ displayCenter_X, Y+ displayCenter_Y
+    return X + center_x, center_y - Y
 
 ### Define the draw circle function, which can be used to draw AB boundaries and also random customer needed circels
 def drawCircle(x,y,Radius,image):
@@ -40,7 +46,9 @@ def drawCircle(x,y,Radius,image):
     circleCenter_y = y
     circleRadius = Radius
     circleWidth = 1
-    pixels = image
+    pixels = image.load()
+    imageWidth = image.width
+    imageHeight = image.height
     ### Determine the color of the circle according to the background color
     if int(BackgroundREntry.get()) == 0 and int(BackgroundGEntry.get()) == 0 and int(BackgroundBEntry.get()) == 0:
         circle_R = 255
@@ -50,10 +58,36 @@ def drawCircle(x,y,Radius,image):
         circle_R = 0
         circle_G = 0
         circle_B = 0
-    for i in range(0, int(imgWidthSettingEntry.get())):
-        for j in range(0, int(imgHeightSettingEntry.get())):
+    for i in range(0, imageWidth):
+        for j in range(0, imageHeight):
             if (circleRadius - circleWidth) ** 2 <= (abs(i - circleCenter_x)) ** 2 + (
             abs(j - circleCenter_y)) ** 2 < (circleRadius + circleWidth) ** 2:
+                pixels[i, j] = (circle_R, circle_G, circle_B)
+
+### Define the draw dboule side AB circle function, which is a specicial request from SQE team
+def drawABCircle(x_left,y_left,x_right,y_right,Radius,image):
+    circleRadius = Radius
+    circleWidth = 1
+    pixels = image.load()
+    imageWidth = image.width
+    imageHeight = image.height
+
+    ### Determine the color of the circle according to the background color
+    if int(BackgroundREntry.get()) == 0 and int(BackgroundGEntry.get()) == 0 and int(BackgroundBEntry.get()) == 0:
+        circle_R = 0
+        circle_G = 0
+        circle_B = 127   #special request by SQE. Circle in Black background should be in (0,0,127)
+    else:
+        circle_R = 0
+        circle_G = 0
+        circle_B = 0
+    for i in range(0,imageWidth ):
+        for j in range(0,imageHeight ):
+            if ((circleRadius - circleWidth) ** 2 <= (abs(i - x_left)) ** 2 + (
+                abs(j - y_left)) ** 2 < (circleRadius + circleWidth) ** 2) and i <= imageWidth/2:
+                pixels[i, j] = (circle_R, circle_G, circle_B)
+            elif ((circleRadius - circleWidth) ** 2 <= (abs(i - x_right)) ** 2 + (
+                abs(j - y_right)) ** 2 < (circleRadius + circleWidth) ** 2) and i >= imageWidth/2:
                 pixels[i, j] = (circle_R, circle_G, circle_B)
 
 def createBMP(event):
@@ -86,23 +120,59 @@ def createBMP(event):
         imgBackgroundR= abs(int(BackgroundREntry.get()))
         imgBackgroundG= abs(int(BackgroundGEntry.get()))
         imgBackgroundB= abs(int(BackgroundBEntry.get()))
+
+        imageWidth = 0
+        imageHeight = 0
+
+        opticalCenter_x_left = 0
+        opticalCenter_y = 0
+        opticalCenter_x_right = 0
+
+        radius_A = 0
+        radius_B = 0
+
+        ### determine the image size based on the product
+        if productCombobox.get() == 'Seacliff':
+            imageWidth = 1800
+            imageHeight = 1920
+
+            opticalCenter_x_left = 1027
+            opticalCenter_y = 960
+            opticalCenter_x_right = 773
+
+            radius_A = 292
+            radius_B = 890
+
+
+        elif productCombobox.get() == 'Eureka':
+            imageWidth = 2064
+            imageHeight = 2208
+
+            opticalCenter_x_left = 1179
+            opticalCenter_y = 1104
+            opticalCenter_x_right = 885
+
+            radius_A = 336
+            radius_B = 1024
+        else:
+            pass
+
         ### If user's input of RGB value is larger than 255, pop up a error message and ask user to re-input
         if imgBackgroundR >255 or imgBackgroundB >255 or imgBackgroundG >255:
             tk.messagebox.showerror(message='Improper background color input, please input values smaller than 255!')
             return
 
         ### Set the background image based on background RGB setting
-        img = Image.new('RGB', (int(imgWidthSettingEntry.get()), int(imgHeightSettingEntry.get())),(imgBackgroundR, imgBackgroundG, imgBackgroundB))
+        img = Image.new('RGB', (imageWidth, imageHeight),(imgBackgroundR, imgBackgroundG, imgBackgroundB))
 
         pixels = img.load()
 
         ### Rote 21 degree for HMD pattern if the HMDRotateCheck is selected
         if chkHMDRotateValue.get():
             for i in range(0,dotNum):
-                rho= Cartesian2Polar(dotLocationsX[i],dotLocationsY[i])[0]
-                theta= Cartesian2Polar(dotLocationsX[i],dotLocationsY[i])[1] + 21/180*np.pi
-                dotLocationsX[i]= Polar2Cartesian(rho,theta)[0]
-                dotLocationsY[i]= Polar2Cartesian(rho,theta)[1]
+                rho, theta = Cartesian2Polar(dotLocationsX[i],dotLocationsY[i],opticalCenter_x_right,opticalCenter_y)
+                theta= theta + 21/180*np.pi
+                dotLocationsX[i], dotLocationsY[i] = Polar2Cartesian(rho,theta,opticalCenter_x_right,opticalCenter_y)
 
         ### Check pixel value of the image
         #for i in range(0,11):
@@ -110,43 +180,49 @@ def createBMP(event):
 
         ### Set pixel value according to the setting in the setup csv
         for i in range(0,dotNum):
-            #print('i= ', i)
-            for m in range(0,int(dotWidth[i])):
-                for n in range (0,int(dotHeight[i])):
-                    pixels[int(dotLocationsX[i]) + m,int(dotLocationsY[i]) + n] =(int(dotR[i]),int(dotG[i]),int(dotB[i]))
-                    #print('n= ', n)
-                #print ('m= ',m)
+            if dotLocationsX[i] < imageWidth and dotLocationsY[i] < imageHeight:
+                #print('i= ', i)
+                for m in range(0,int(dotWidth[i])):
+                    for n in range (0,int(dotHeight[i])):
+                        pixels[int(dotLocationsX[i]) + m,int(dotLocationsY[i]) + n] =(int(dotR[i]),int(dotG[i]),int(dotB[i]))
 
 
-        saveName = ''
         ### Draw AB boundarys if ABCircleCheck is selected, display cender is (773,960), radius of A and B are 292 and 890 respectively
         if chkABCircleValue.get():
-            drawCircle(displayCenter_X,displayCenter_Y,292,pixels)
-            drawCircle(displayCenter_X,displayCenter_Y,890,pixels)
+        ### Normal
+            drawCircle(opticalCenter_x_right,opticalCenter_y,radius_A,img)
+            drawCircle(opticalCenter_x_right,opticalCenter_y,radius_B,img)
+
+        ### Draw double AB boundarys if ABCircleCheck is selected, display cender is (773,960), radius of A and B are 292 and 890 respectively
+        if chkDoubleABCircleValue.get():
+
+            ### double AB circle drawing for Eureka Optical center left: (885,1104); right (1179,1104)
+            drawABCircle(opticalCenter_x_left,opticalCenter_y,opticalCenter_x_right,opticalCenter_y,radius_A,img)
+            drawABCircle(opticalCenter_x_left,opticalCenter_y,opticalCenter_x_right,opticalCenter_y,radius_B,img)
 
         #### Draw customized circles according to the location and radius information input in the GUI
         if Circle1CenterEntry_x.get().isnumeric() and Circle1CenterEntry_y.get().isnumeric() and Circle1RadiusEntry.get().isnumeric():
-            drawCircle(int(Circle1CenterEntry_x.get()),int(Circle1CenterEntry_y.get()),int(Circle1RadiusEntry.get()),pixels)
+            drawCircle(int(Circle1CenterEntry_x.get()),int(Circle1CenterEntry_y.get()),int(Circle1RadiusEntry.get()),img)
         if Circle2CenterEntry_x.get().isnumeric() and Circle2CenterEntry_y.get().isnumeric() and Circle2RadiusEntry.get().isnumeric():
             drawCircle(int(Circle2CenterEntry_x.get()), int(Circle2CenterEntry_y.get()), int(Circle2RadiusEntry.get()),
-                       pixels)
+                       img)
         if Circle3CenterEntry_x.get().isnumeric() and Circle3CenterEntry_y.get().isnumeric() and Circle3RadiusEntry.get().isnumeric():
             drawCircle(int(Circle3CenterEntry_x.get()), int(Circle3CenterEntry_y.get()), int(Circle3RadiusEntry.get()),
-                       pixels)
+                       img)
         if Circle4CenterEntry_x.get().isnumeric() and Circle4CenterEntry_y.get().isnumeric() and Circle4RadiusEntry.get().isnumeric():
             drawCircle(int(Circle4CenterEntry_x.get()), int(Circle4CenterEntry_y.get()), int(Circle4RadiusEntry.get()),
-                       pixels)
+                       img)
 
         ### To Flip the image to make a left eye pattern
         if chkLeftValue.get():
             #print(chkValue.get())
             img= img.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
             saveName = fileFullPath.rstrip(
-                '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Left' + '.bmp'
+                '.csv') + '_' + str(imageWidth) + 'X' + str(imageHeight) + '_Left' + '.bmp'
         elif chkHMDValue.get():
             imgRight= img
             imgLeft= imgRight.transpose(method= PIL.Image.FLIP_LEFT_RIGHT)
-            imgHMD= Image.new('RGB',(2* int(imgWidthSettingEntry.get()),int(imgHeightSettingEntry.get())),(0,0,0))
+            imgHMD= Image.new('RGB',(2* imageWidth,imageHeight),(0,0,0))
             imgHMD.paste(imgLeft,(0,0))
             imgHMD.paste(imgRight,(imgLeft.size[0],0))
             img= imgHMD
@@ -154,7 +230,7 @@ def createBMP(event):
                 '.csv') + '_' + str(imgHMD.size[0]) + 'X' + str(imgHMD.size[1]) + '_HMD' + '.bmp'
         else:
             saveName = fileFullPath.rstrip(
-                '.csv') + '_' + imgWidthSettingEntry.get() + 'X' + imgHeightSettingEntry.get() + '_Right' + '.bmp'
+                '.csv') + '_' + str(imageWidth) + 'X' + str(imageHeight) + '_Right' + '.bmp'
 
         saveFullPath = os.path.join(os.path.abspath(os.getcwd()), saveName)
         img.save(saveFullPath)
@@ -165,15 +241,29 @@ def createBMP(event):
 def HMDActivate():
     if chkHMDValue.get():
         chkLeftValue.set(False)
+        chkDoubleABCircleValue.set(False)
 
-def leftEyeActivate():
+def leftEyeActivated():
     if chkLeftValue.get():
         chkHMDValue.set(False)
+        chkDoubleABCircleValue.set(False)
+
+def ABCircleEnabled():
+    if chkABCircleValue.get():
+        chkDoubleABCircleValue.set(False)
+
+def DoubleCircleEnabled():
+    if chkDoubleABCircleValue.get():
+        chkLeftValue.set(False)
+        chkHMDValue.set(False)
+        chkABCircleValue.set(False)
+        chkHMDRotateValue.set(False)
+
+def HMDRotateEnabled():
+    if chkHMDRotateValue.get():
+        chkDoubleABCircleValue.set(False)
 
 
-### Define constant
-displayCenter_X= 773
-displayCenter_Y= 960
 
 window = tk.Tk()
 window.title('Display Pattern Generator V1.1')
@@ -186,17 +276,26 @@ filePathEntry.grid(row= 0, column = 3, columnspan= 18)
 settingButton = tk.Button(text = 'Setting File')
 settingButton.bind('<Button-1>',openBMPSetting)
 settingButton.grid(row = 0, column = 21, columnspan= 3)
-####### Row 1 #########
-imgWidthSettingLabel = tk.Label(text = 'Width')
-imgWidthSettingLabel.grid( sticky= 'E',row= 1, column= 1 )
-imgWidthSettingEntry = tk.Entry(width= 5)
-imgWidthSettingEntry.insert(0, '1824')
-imgWidthSettingEntry.grid(row= 1, column= 2,columnspan= 2)
-imgHeightSettingLabel = tk.Label(text = 'Height')
-imgHeightSettingLabel.grid(sticky= 'E',row= 1, column= 4)
-imgHeightSettingEntry = tk.Entry(width = 5)
-imgHeightSettingEntry.insert(0, '1920')
-imgHeightSettingEntry.grid(sticky= 'W',row= 1, column= 5, columnspan= 2)
+####### Row 1 ######### manul input the image width and height
+# imgWidthSettingLabel = tk.Label(text = 'Width')
+# imgWidthSettingLabel.grid( sticky= 'E',row= 1, column= 1 )
+# imgWidthSettingEntry = tk.Entry(width= 5)
+# imgWidthSettingEntry.insert(0, '1824')
+# imgWidthSettingEntry.grid(row= 1, column= 2,columnspan= 2)
+# imgHeightSettingLabel = tk.Label(text = 'Height')
+# imgHeightSettingLabel.grid(sticky= 'E',row= 1, column= 4)
+# imgHeightSettingEntry = tk.Entry(width = 5)
+# imgHeightSettingEntry.insert(0, '1920')
+# imgHeightSettingEntry.grid(sticky= 'W',row= 1, column= 5, columnspan= 2)
+
+#### Row 1 ######### image size determination by sellecting the product name
+productLabel = tk.Label(text = 'Product')
+productLabel.grid(row = 1, column = 1)
+productVariable = tk.StringVar()
+productCombobox = ttk.Combobox(width = 10, textvariable = productVariable)
+productCombobox['value'] = ('Seacliff','Eureka')
+productCombobox.grid(row = 1, column = 2, columnspan = 5)
+
 
 BackgroundSettingLabel = tk.Label(text = 'Background')
 BackgroundSettingLabel.grid(sticky= 'E',row= 1, column= 8,columnspan= 4)
@@ -223,7 +322,7 @@ chkLeftValue.set(False)
 chkHMDValue = tk.BooleanVar()
 chkHMDValue.set(False)
 ######## Row 2 #########
-leftEyeCheck= tk.Checkbutton(text= 'Left Eye',var= chkLeftValue, command = leftEyeActivate)
+leftEyeCheck= tk.Checkbutton(text= 'Left Eye',var= chkLeftValue, command = leftEyeActivated)
 leftEyeCheck.grid(row= 2, column= 2, columnspan= 3)
 
 HMDCheck = tk.Checkbutton(text= 'HMD',var=chkHMDValue, command= HMDActivate)
@@ -232,14 +331,21 @@ HMDCheck.grid(row= 2, column= 5, columnspan= 3 )
 chkABCircleValue= tk.BooleanVar()
 chkABCircleValue.set(False)
 
-ABCircleCheck= tk.Checkbutton(text= 'A/B', var= chkABCircleValue)
+ABCircleCheck= tk.Checkbutton(text= 'A/B', var= chkABCircleValue, command = ABCircleEnabled)
 ABCircleCheck.grid(row= 2, column= 8, sticky= 'W',columnspan= 3)
+
+chkDoubleABCircleValue= tk.BooleanVar()
+chkDoubleABCircleValue.set(False)
+
+doubleABCircleCheck= tk.Checkbutton(text= 'Double A/B', var= chkDoubleABCircleValue,command = DoubleCircleEnabled)
+doubleABCircleCheck.grid(row= 2, column= 11, sticky= 'W',columnspan= 4)
+
 
 chkHMDRotateValue= tk.BooleanVar()
 chkHMDRotateValue.set(False)
 
-HMDRotateCheck= tk.Checkbutton(text= 'Rotate', var= chkHMDRotateValue)
-HMDRotateCheck.grid(row= 2, column= 11, sticky= 'W',columnspan= 3)
+HMDRotateCheck= tk.Checkbutton(text= 'Rotate', var= chkHMDRotateValue, command = HMDRotateEnabled)
+HMDRotateCheck.grid(row= 2, column= 15, sticky= 'W',columnspan= 3)
 
 createBMPButton = tk.Button(text = 'Create BMP')
 createBMPButton.bind('<Button-1>',createBMP)
